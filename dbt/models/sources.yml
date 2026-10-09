@@ -1,0 +1,28 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Iceberg tables written by the Glue-style jobs and the Firehose sink. Locally they are
+      exposed to DuckDB as schema `raw`; in AWS they live in the Glue database `musicpods_raw`.
+    schema: "{{ 'musicpods_raw' if target.type == 'athena' else 'raw' }}"
+    tables:
+      - name: listen_events
+        description: One row per ListenBrainz listen delivered through Firehose (deduplicated on event_id).
+        columns:
+          - name: event_id
+            data_tests: [unique, not_null]
+      - name: mb_artists
+      - name: mb_artist_tags
+      - name: mb_recordings
+      - name: mb_release_groups
+      - name: lb_fresh_releases
+      - name: lb_sitewide_artists
+      - name: lb_user_daily_activity
+      - name: lb_user_top_artists
+      - name: podcast_chart_entries
+      - name: podcast_shows
+      - name: podcast_episodes
+      - name: lastfm_top_artists
+      - name: podcastindex_feeds
+      - name: spotify_artists

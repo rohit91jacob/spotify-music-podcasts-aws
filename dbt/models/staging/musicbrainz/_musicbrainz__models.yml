@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: stg_mb__artists
+    columns:
+      - name: artist_mbid
+        data_tests: [unique, not_null]
+  - name: stg_mb__artist_genres
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [artist_mbid, genre]}
+    columns:
+      - name: votes
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 1}
+  - name: stg_mb__recordings
+    columns:
+      - name: recording_mbid
+        data_tests: [unique, not_null]
+      - name: length_ms
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 1}
+  - name: stg_mb__release_groups
+    columns:
+      - name: release_group_mbid
+        data_tests: [unique, not_null]

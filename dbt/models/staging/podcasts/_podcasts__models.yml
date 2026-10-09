@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: stg_apple__chart_entries
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [snapshot_date, country, chart_rank]}
+    columns:
+      - name: chart_rank
+        data_tests:
+          - not_null
+          - accepted_range:
+              arguments: {min_value: 1, max_value: 200}
+      - name: podcast_id
+        data_tests: [not_null]
+  - name: stg_apple__shows
+    columns:
+      - name: podcast_id
+        data_tests: [unique, not_null]
+  - name: stg_rss__episodes
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [podcast_id, episode_key]}

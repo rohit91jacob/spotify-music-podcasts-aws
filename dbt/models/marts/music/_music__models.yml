@@ -1,0 +1,426 @@
+version: 2
+
+models:
+  - name: dim_artist
+    description: >
+      One row per artist heard by the listener panel. Mapped listens use the MusicBrainz artist
+      MBID as key; unmapped listens fall back to `name:<lower(credited name)>`.
+    config:
+      contract: {enforced: true}
+    columns:
+      - name: artist_key
+        data_type: varchar
+        description: MusicBrainz artist MBID, or `name:<lower(artist_name)>` when ListenBrainz could not map the listen.
+        constraints: [{type: not_null}]
+        data_tests: [unique, not_null]
+      - name: artist_mbid
+        data_type: varchar
+        description: MusicBrainz artist MBID (null for unmapped artists).
+      - name: artist_name
+        data_type: varchar
+        description: MusicBrainz name when looked up, else the most frequent credited name in the listens.
+      - name: artist_type
+        data_type: varchar
+        description: MusicBrainz artist type (Person, Group, ...).
+      - name: country
+        data_type: varchar
+        description: MusicBrainz artist country (ISO 3166-1 alpha-2), when known.
+      - name: primary_genre
+        data_type: varchar
+        description: Most-voted MusicBrainz genre tag; `unknown` = mapped but untagged (or not looked up), `unmapped` = no artist MBID.
+        data_tests: [not_null]
+      - name: listens_total
+        data_type: bigint
+        description: Non-duplicate panel listens of this artist in the window.
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 1}
+      - name: listeners_total
+        data_type: bigint
+        description: Distinct panel users who listened.
+      - name: first_listened_at
+        data_type: timestamp
+        description: First listen in the window (UTC).
+      - name: last_listened_at
+        data_type: timestamp
+        description: Last listen in the window (UTC).
+
+  - name: fct_listens
+    description: >
+      One row per non-duplicate listen (duplicate scrobbles of the same recording within
+      `duplicate_scrobble_seconds` are dropped), with session and short-play attributes.
+    config:
+      contract: {enforced: true}
+    data_tests:
+      - at_least_rows:
+          arguments: {min_rows: 1}
+    columns:
+      - name: event_id
+        data_type: varchar
+        description: Deterministic hash of (user_key, listened_at, recording_msid); the Firehose sink's dedup key.
+        constraints: [{type: not_null}]
+        data_tests: [unique, not_null]
+      - name: user_key
+        data_type: varchar
+        description: Salted SHA-256 pseudonym of the ListenBrainz user (never the user name).
+        data_tests: [not_null]
+      - name: listened_at
+        data_type: timestamp
+        description: When the listen started (UTC), as submitted by the user's client.
+        data_tests: [not_null]
+      - name: listen_date
+        data_type: date
+        description: UTC date of listened_at.
+      - name: week_start
+        data_type: date
+        description: Monday of the ISO week of listen_date.
+      - name: artist_key
+        data_type: varchar
+        description: See dim_artist.artist_key.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_artist'), field: artist_key}
+      - name: artist_name
+        data_type: varchar
+        description: Artist display name (dim_artist).
+      - name: primary_genre
+        data_type: varchar
+        description: Artist primary genre (dim_artist).
+      - name: track_name
+        data_type: varchar
+        description: Track title as submitted.
+      - name: recording_mbid
+        data_type: varchar
+        description: MusicBrainz recording MBID from ListenBrainz's mapping (null when unmapped).
+      - name: release_group_mbid
+        data_type: varchar
+        description: MusicBrainz release group MBID from the mapping.
+      - name: track_duration_ms
+        data_type: bigint
+        description: Track length; from the listen when the client sent it, else MusicBrainz recording length.
+      - name: duration_source
+        data_type: varchar
+        description: "`listen` or `musicbrainz` (null when no duration is known)."
+        data_tests:
+          - accepted_values:
+              arguments: {values: [listen, musicbrainz]}
+      - name: session_id
+        data_type: varchar
+        description: "`<user_key>-<n>`: the n-th listening session of the user (30-minute inactivity gap by default)."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('fct_listening_sessions'), field: session_id}
+      - name: seconds_to_next_listen
+        data_type: bigint
+        description: Seconds until the same user's next listen (null for the user's last listen).
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 0}
+      - name: played_ms
+        data_type: bigint
+        description: Observed playback time, only where the client reports it (Spotify extended streaming history imports send `ms_played`).
+      - name: short_play_basis
+        data_type: varchar
+        description: "How a short play is derivable: `played_ms` (observed playback), `next_listen` (next listen started early in the same session), or null (not derivable)."
+        data_tests:
+          - accepted_values:
+              arguments: {values: [played_ms, next_listen]}
+      - name: is_short_play_derivable
+        data_type: boolean
+        description: True when short_play_basis is not null.
+      - name: is_short_play
+        data_type: boolean
+        description: Skip-like short play - played (or followed by the next listen) before `short_play_fraction` (0.5) of the track elapsed.
+      - name: is_mbid_mapped
+        data_type: boolean
+        description: True when ListenBrainz mapped the listen to a MusicBrainz recording.
+      - name: submission_client
+        data_type: varchar
+        description: Client that submitted the listen (e.g. a scrobbler or an importer).
+      - name: music_service
+        data_type: varchar
+        description: Streaming service domain reported by the client, when present.
+
+  - name: fct_listening_sessions
+    description: One row per listening session (a run of listens with no gap longer than `session_gap_minutes`, default 30).
+    config:
+      contract: {enforced: true}
+    columns:
+      - name: session_id
+        data_type: varchar
+        description: "`<user_key>-<n>`."
+        constraints: [{type: not_null}]
+        data_tests: [unique, not_null]
+      - name: user_key
+        data_type: varchar
+        description: Pseudonymous user.
+        data_tests: [not_null]
+      - name: started_at
+        data_type: timestamp
+        description: Start of the first listen.
+      - name: ended_at
+        data_type: timestamp
+        description: Start of the last listen plus its duration when known (else the last listen's start).
+      - name: session_date
+        data_type: date
+        description: UTC date the session started.
+      - name: listens
+        data_type: bigint
+        description: Listens in the session.
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 1}
+      - name: distinct_artists
+        data_type: bigint
+        description: Distinct artists in the session.
+      - name: duration_minutes
+        data_type: double
+        description: (ended_at - started_at) in minutes.
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 0}
+      - name: short_play_derivable_listens
+        data_type: bigint
+        description: Listens whose short-play status is derivable.
+      - name: short_plays
+        data_type: bigint
+        description: Skip-like short plays in the session.
+
+  - name: mart_listening_sessions_daily
+    description: Daily session statistics across the panel (UTC days).
+    config:
+      contract: {enforced: true}
+    columns:
+      - name: session_date
+        data_type: date
+        description: UTC day.
+        constraints: [{type: not_null}]
+        data_tests: [unique, not_null]
+      - name: sessions
+        data_type: bigint
+        description: Sessions that started this day.
+      - name: active_users
+        data_type: bigint
+        description: Distinct users with a session.
+      - name: listens
+        data_type: bigint
+        description: Listens in those sessions.
+      - name: avg_listens_per_session
+        data_type: double
+        description: Mean listens per session.
+      - name: median_session_minutes
+        data_type: double
+        description: Median session length (minutes).
+      - name: p90_session_minutes
+        data_type: double
+        description: 90th-percentile session length (minutes).
+      - name: short_plays
+        data_type: bigint
+        description: Skip-like short plays.
+      - name: short_play_derivable_listens
+        data_type: bigint
+        description: Listens whose short-play status is derivable.
+
+  - name: mart_artist_momentum
+    description: >
+      Week-over-week listens per artist. Weeks run Monday-Sunday (UTC). Use rows with
+      `is_comparable_week` for momentum: both this week and the previous one lie fully inside the
+      data window, so partial edge weeks cannot fake growth or decline.
+    config:
+      contract: {enforced: true}
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [week_start, artist_key]}
+    columns:
+      - name: week_start
+        data_type: date
+        description: Monday of the week.
+        data_tests: [not_null]
+      - name: artist_key
+        data_type: varchar
+        description: See dim_artist.
+        data_tests: [not_null]
+      - name: artist_name
+        data_type: varchar
+        description: Artist display name.
+      - name: primary_genre
+        data_type: varchar
+        description: Artist primary genre.
+      - name: listens
+        data_type: bigint
+        description: Panel listens this week.
+      - name: listeners
+        data_type: bigint
+        description: Distinct panel users this week.
+      - name: prev_week_listens
+        data_type: bigint
+        description: Panel listens the previous week (0 when none).
+      - name: wow_change
+        data_type: bigint
+        description: listens - prev_week_listens.
+      - name: wow_pct
+        data_type: double
+        description: wow_change / prev_week_listens (null when the artist had no listens the week before).
+      - name: momentum_rank
+        data_type: bigint
+        description: Rank within the week by wow_change, then listens.
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 1}
+      - name: is_complete_week
+        data_type: boolean
+        description: The whole week lies inside the data window.
+      - name: is_comparable_week
+        data_tests: [not_null]
+        data_type: boolean
+        description: This week and the previous week are both complete.
+
+  - name: mart_genre_share
+    description: Weekly share of panel listens by the artist's primary MusicBrainz genre.
+    config:
+      contract: {enforced: true}
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [week_start, genre]}
+    columns:
+      - name: week_start
+        data_type: date
+        description: Monday of the week.
+      - name: genre
+        data_type: varchar
+        description: Primary genre, or `unknown` / `unmapped` (see dim_artist).
+        data_tests: [not_null]
+      - name: listens
+        data_type: bigint
+        description: Listens of artists with this primary genre.
+      - name: listeners
+        data_type: bigint
+        description: Distinct users.
+      - name: artists
+        data_type: bigint
+        description: Distinct artists.
+      - name: week_listens
+        data_type: bigint
+        description: All panel listens that week.
+      - name: listen_share
+        data_type: double
+        description: listens / week_listens.
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 0, max_value: 1}
+      - name: genre_rank
+        data_type: bigint
+        description: Rank of the genre within the week by listens.
+
+  - name: mart_short_plays_weekly
+    description: Skip-like short plays per artist and week, for artist-weeks with at least `min_derivable_listens` (20) derivable listens.
+    config:
+      contract: {enforced: true}
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [week_start, artist_key]}
+    columns:
+      - name: week_start
+        data_type: date
+        description: Monday of the week.
+      - name: artist_key
+        data_type: varchar
+        description: See dim_artist.
+      - name: artist_name
+        data_type: varchar
+        description: Artist display name.
+      - name: listens
+        data_type: bigint
+        description: All listens of the artist that week.
+      - name: derivable_listens
+        data_type: bigint
+        description: Listens whose short-play status is derivable.
+      - name: short_plays
+        data_type: bigint
+        description: Skip-like short plays.
+      - name: short_play_rate
+        data_type: double
+        description: short_plays / derivable_listens.
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 0, max_value: 1}
+
+  - name: mart_new_release_share
+    description: >
+      Weekly share of listens by release-group age at listen time (MusicBrainz first-release-date).
+      `unknown` covers unmapped listens, release groups not looked up and partial dates.
+    config:
+      contract: {enforced: true}
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [week_start, release_age_bucket]}
+    columns:
+      - name: week_start
+        data_type: date
+        description: Monday of the week.
+      - name: release_age_bucket
+        data_type: varchar
+        description: Age of the release group when played.
+        data_tests:
+          - accepted_values:
+              arguments: {values: [unknown, pre-release, 0-28 days, 29-365 days, 1-5 years, over 5 years]}
+      - name: listens
+        data_type: bigint
+        description: Listens in the bucket.
+      - name: listeners
+        data_type: bigint
+        description: Distinct users.
+      - name: listen_share
+        data_type: double
+        description: Share of the week's listens.
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 0, max_value: 1}
+
+  - name: mart_release_discovery_lag
+    description: >
+      New-release discovery lag. For release groups ListenBrainz lists as freshly released, how
+      many days after the release date the panel first played them, and how much in the first week.
+    config:
+      contract: {enforced: true}
+    columns:
+      - name: release_group_mbid
+        data_type: varchar
+        description: MusicBrainz release group MBID.
+        constraints: [{type: not_null}]
+        data_tests: [unique, not_null]
+      - name: release_name
+        data_type: varchar
+        description: Release title (ListenBrainz fresh releases).
+      - name: artist_credit_name
+        data_type: varchar
+        description: Credited artist(s).
+      - name: primary_type
+        data_type: varchar
+        description: Album, Single, EP, ...
+      - name: release_date
+        data_type: date
+        description: Release date ListenBrainz lists (earliest edition in the snapshot).
+      - name: first_listened_at
+        data_type: timestamp
+        description: First panel listen of any edition.
+      - name: discovery_lag_days
+        data_type: bigint
+        description: Days from release_date to the first panel listen on or after it.
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 0}
+      - name: panel_listens
+        data_type: bigint
+        description: Panel listens of the release group in the window.
+      - name: panel_listeners
+        data_type: bigint
+        description: Distinct panel users.
+      - name: listens_first_7_days
+        data_type: bigint
+        description: Listens in days 0-6 after release.
+      - name: listens_before_release_date
+        data_type: bigint
+        description: Listens before the listed date (an earlier edition, a pre-release single or a date error).

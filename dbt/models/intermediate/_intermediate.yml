@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: int_listens__enriched
+    description: Listens with track duration and a duplicate-scrobble flag.
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: duration_source
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [listen, musicbrainz]
+  - name: int_listens__sessionised
+    description: Non-duplicate listens with session ids and short-play flags.
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: session_id
+        data_tests: [not_null]
+      - name: seconds_to_next_listen
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 0}
+  - name: int_artist__primary_genre
+    columns:
+      - name: artist_mbid
+        data_tests: [unique, not_null]
+  - name: int_chart__entries_sequenced
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [snapshot_date, country, chart_rank]}

@@ -1,0 +1,230 @@
+version: 2
+
+models:
+  - name: dim_podcast
+    description: Shows that appeared on any tracked Apple Podcasts top chart, with iTunes Lookup metadata where available.
+    config:
+      contract: {enforced: true}
+    columns:
+      - name: podcast_id
+        data_type: varchar
+        description: Apple Podcasts show id (iTunes collectionId).
+        constraints: [{type: not_null}]
+        data_tests: [unique, not_null]
+      - name: podcast_name
+        data_type: varchar
+        description: Show title (iTunes Lookup, else the chart entry).
+      - name: publisher
+        data_type: varchar
+        description: Publisher / artist name.
+      - name: primary_genre
+        data_type: varchar
+        description: iTunes primary genre, else the chart entry's first genre.
+      - name: published_episode_count
+        data_type: bigint
+        description: Episode count Apple publishes (iTunes Lookup trackCount), latest lookup.
+      - name: latest_release_at
+        data_type: timestamp
+        description: Latest episode time Apple publishes (iTunes Lookup releaseDate, UTC).
+      - name: first_charted_on
+        data_type: date
+        description: First daily snapshot with the show on any tracked chart.
+      - name: last_charted_on
+        data_type: date
+        description: Last daily snapshot with the show on any tracked chart.
+      - name: countries_charted
+        data_type: bigint
+        description: Distinct storefronts whose chart listed the show at least once.
+
+  - name: mart_podcast_chart_movement
+    description: >
+      Rank movement per show, storefront and daily snapshot versus the previous snapshot of that
+      storefront's chart. rank_change > 0 means the show climbed.
+    config:
+      contract: {enforced: true}
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [snapshot_date, country, chart_rank]}
+    columns:
+      - name: snapshot_date
+        data_type: date
+        description: UTC date of the chart snapshot.
+        data_tests: [not_null]
+      - name: snapshot_seq
+        data_type: bigint
+        description: 1-based position of the snapshot in the storefront's snapshot sequence.
+      - name: country
+        data_type: varchar
+        description: Apple storefront (ISO 3166-1 alpha-2, lower case).
+        data_tests: [not_null]
+      - name: chart_rank
+        data_type: bigint
+        description: Position on the Top Shows chart (1 = top).
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 1, max_value: 200}
+      - name: podcast_id
+        data_type: varchar
+        description: Apple show id.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_podcast'), field: podcast_id}
+      - name: podcast_name
+        data_type: varchar
+        description: Show title on the chart.
+      - name: chart_genre
+        data_type: varchar
+        description: First genre listed on the chart entry.
+      - name: previous_rank
+        data_type: bigint
+        description: Rank in the previous snapshot (null when not charting then).
+      - name: rank_change
+        data_type: bigint
+        description: previous_rank - chart_rank (positive = climbed).
+      - name: movement
+        data_type: varchar
+        description: "`baseline` (first snapshot), `new`, `re-entry`, `up`, `down` or `same`."
+        data_tests:
+          - accepted_values:
+              arguments: {values: [baseline, new, re-entry, up, down, same]}
+
+  - name: mart_podcast_chart_longevity
+    description: >
+      Chart longevity per show and storefront across every daily snapshot collected so far.
+      current_streak counts consecutive snapshots up to and including the latest one.
+    config:
+      contract: {enforced: true}
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [country, podcast_id]}
+    columns:
+      - name: country
+        data_type: varchar
+        description: Apple storefront.
+      - name: podcast_id
+        data_type: varchar
+        description: Apple show id.
+      - name: podcast_name
+        data_type: varchar
+        description: Show title.
+      - name: first_seen_on
+        data_type: date
+        description: First snapshot with the show on this storefront's chart.
+      - name: last_seen_on
+        data_type: date
+        description: Last snapshot with the show on this storefront's chart.
+      - name: snapshots_on_chart
+        data_type: bigint
+        description: Snapshots in which the show charted.
+      - name: snapshots_in_country
+        data_type: bigint
+        description: Snapshots collected for the storefront.
+      - name: share_of_snapshots
+        data_type: double
+        description: snapshots_on_chart / snapshots_in_country.
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 0, max_value: 1}
+      - name: best_rank
+        data_type: bigint
+        description: Best (lowest) rank reached.
+      - name: avg_rank
+        data_type: double
+        description: Mean rank over the snapshots it charted in.
+      - name: latest_rank
+        data_type: bigint
+        description: Rank in the latest snapshot (null if not on it).
+      - name: current_streak
+        data_type: bigint
+        description: Consecutive snapshots on the chart ending at the latest one (0 if not on it).
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 0}
+      - name: on_latest_chart
+        data_type: boolean
+        description: On the storefront's latest snapshot.
+
+  - name: mart_podcast_cross_country
+    description: How many of the tracked storefront charts list each show, using each storefront's latest snapshot.
+    config:
+      contract: {enforced: true}
+    columns:
+      - name: podcast_id
+        data_type: varchar
+        description: Apple show id.
+        constraints: [{type: not_null}]
+        data_tests: [unique, not_null]
+      - name: podcast_name
+        data_type: varchar
+        description: Show title.
+      - name: countries
+        data_type: bigint
+        description: Storefronts whose latest chart lists the show.
+        data_tests:
+          - accepted_range:
+              arguments: {min_value: 1}
+      - name: best_rank
+        data_type: bigint
+        description: Best rank across those storefronts.
+      - name: avg_rank
+        data_type: double
+        description: Mean rank across those storefronts.
+      - name: country_list
+        data_type: varchar
+        description: Comma-separated storefront codes.
+
+  - name: mart_episode_cadence
+    description: >
+      Episode release cadence per show from its own RSS feed (latest fetch). The median gap uses
+      the most recent `cadence_recent_episodes` (20) full episodes; trailers and bonus items are excluded.
+    config:
+      contract: {enforced: true}
+    columns:
+      - name: podcast_id
+        data_type: varchar
+        description: Apple show id.
+        constraints: [{type: not_null}]
+        data_tests: [unique, not_null]
+      - name: podcast_name
+        data_type: varchar
+        description: Show title.
+      - name: primary_genre
+        data_type: varchar
+        description: Primary genre.
+      - name: fetched_date
+        data_type: date
+        description: UTC date the feed was fetched.
+      - name: episodes_in_feed
+        data_type: bigint
+        description: Items with a publish date in the feed.
+      - name: full_episodes_in_feed
+        data_type: bigint
+        description: Items of type `full`.
+      - name: oldest_episode_at
+        data_type: timestamp
+        description: Oldest item in the feed.
+      - name: latest_episode_at
+        data_type: timestamp
+        description: Newest item in the feed.
+      - name: days_since_latest_episode
+        data_type: bigint
+        description: fetched_date - date(latest_episode_at).
+      - name: episodes_last_30_days
+        data_type: bigint
+        description: Items published in the 30 days up to the fetch.
+      - name: episodes_last_90_days
+        data_type: bigint
+        description: Items published in the 90 days up to the fetch.
+      - name: median_gap_days
+        data_type: double
+        description: Median days between consecutive recent full episodes.
+      - name: avg_duration_minutes
+        data_type: double
+        description: Mean itunes:duration (minutes) where present.
+      - name: cadence
+        data_type: varchar
+        description: Bucket of median_gap_days.
+        data_tests:
+          - accepted_values:
+              arguments: {values: [insufficient history, daily, several per week, weekly, fortnightly, monthly, irregular]}

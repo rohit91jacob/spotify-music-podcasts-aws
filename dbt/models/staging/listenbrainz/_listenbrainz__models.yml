@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: stg_lb__listens
+    description: ListenBrainz listens as delivered by the Firehose sink, one row per listen.
+    columns:
+      - name: event_id
+        description: Deterministic hash of (user_key, listened_at, recording_msid).
+        data_tests: [unique, not_null]
+      - name: user_key
+        description: Salted SHA-256 pseudonym of the ListenBrainz user name.
+        data_tests: [not_null]
+      - name: listened_at
+        description: When the listen started (UTC), as submitted by the user's client.
+        data_tests: [not_null]
+      - name: artist_key
+        description: MusicBrainz artist MBID, or `name:<lower(artist_name)>` when unmapped.
+        data_tests: [not_null]
+  - name: stg_lb__fresh_releases
+    columns:
+      - name: release_mbid
+        data_tests: [unique, not_null]
+      - name: release_date
+        data_tests: [not_null]
+  - name: stg_lb__user_daily_activity
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [user_key, activity_date]}
+  - name: stg_lb__user_top_artists
+  - name: stg_lb__sitewide_artists

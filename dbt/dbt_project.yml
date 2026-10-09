@@ -1,0 +1,51 @@
+name: musicpods
+version: "1.0.0"
+config-version: 2
+profile: musicpods
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: target
+clean-targets: ["target", "logs"]
+
+vars:
+  # A new listening session starts after this many minutes without a listen.
+  session_gap_minutes: "{{ env_var('MUSICPODS_SESSION_GAP_MINUTES', '30') }}"
+  # A listen is "skip-like" when the next listen in the same session starts before this
+  # fraction of the track's duration has elapsed.
+  short_play_fraction: 0.5
+  # A next listen sooner than this is a timestamp collision (batch import, offline sync), not a
+  # play: scrobbling rules forbid submitting a track played for under 30 seconds.
+  min_listen_gap_seconds: 30
+  # Same user, same recording, started within this many seconds of the previous listen:
+  # a duplicate scrobble (importer or client artefact), excluded from listening metrics.
+  duplicate_scrobble_seconds: 10
+  # Minimum derivable listens before an artist gets a short-play rate.
+  min_derivable_listens: 20
+  # ListenBrainz statistics are computed from a listens snapshot a few days old; the last days of
+  # a published range are excluded from the settled reconciliation.
+  stats_settle_days: 3
+  # Episodes used for the median gap between releases.
+  cadence_recent_episodes: 20
+
+models:
+  musicpods:
+    # Athena: every model is an Iceberg table in the Glue catalog (ignored by DuckDB).
+    +table_type: iceberg
+    +format: parquet
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: table
+    marts:
+      +schema: marts
+      +materialized: table
+      +contract:
+        enforced: true
+
+data_tests:
+  musicpods:
+    +store_failures: false

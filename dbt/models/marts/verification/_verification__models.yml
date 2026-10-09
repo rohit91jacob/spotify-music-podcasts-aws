@@ -1,0 +1,100 @@
+version: 2
+
+# Reconciliation models: our outputs next to figures the sources publish independently.
+# `musicpods verify` summarises them; docs/verification.md reports the results of a real run.
+models:
+  - name: ver_user_daily_listens
+    description: >
+      Listens per user and UTC day counted from our Firehose -> Iceberg table versus the counts
+      ListenBrainz publishes (listening-activity statistics). is_comparable marks days fully
+      covered by both sides: after the first day we hold listens for, and before the day the
+      published statistics were last computed.
+    config:
+      contract: {enforced: true}
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [user_key, activity_date]}
+    columns:
+      - name: user_key
+        data_type: varchar
+        description: Pseudonymous user.
+      - name: activity_date
+        data_type: date
+        description: UTC day.
+      - name: published_listen_count
+        data_type: bigint
+        description: ListenBrainz's published listen count for the day.
+      - name: our_listen_count
+        data_type: bigint
+        description: Listens in raw.listen_events for the day (duplicates included, as ListenBrainz counts them).
+      - name: difference
+        data_type: bigint
+        description: our_listen_count - published_listen_count.
+      - name: is_comparable
+        data_type: boolean
+        description: Both sides fully cover the day.
+      - name: is_settled
+        data_type: boolean
+        description: Comparable and at least stats_settle_days (3) before the end of the published range, i.e. before the statistics snapshot cutoff.
+
+  - name: ver_podcast_episode_counts
+    description: Episodes parsed from each show's RSS feed versus the episode count and latest-episode time Apple publishes (iTunes Lookup).
+    config:
+      contract: {enforced: true}
+    columns:
+      - name: podcast_id
+        data_type: varchar
+        description: Apple show id.
+        data_tests: [unique, not_null]
+      - name: podcast_name
+        data_type: varchar
+        description: Show title.
+      - name: itunes_episode_count
+        data_type: bigint
+        description: iTunes Lookup trackCount.
+      - name: rss_episode_count
+        data_type: bigint
+        description: Items with a publish date in the RSS feed.
+      - name: episode_count_difference
+        data_type: bigint
+        description: rss_episode_count - itunes_episode_count.
+      - name: itunes_latest_release_at
+        data_type: timestamp
+        description: iTunes Lookup releaseDate.
+      - name: rss_latest_episode_at
+        data_type: timestamp
+        description: Newest item in the RSS feed.
+      - name: latest_episode_hours_difference
+        data_type: double
+        description: (itunes_latest_release_at - rss_latest_episode_at) in hours.
+
+  - name: ver_release_dates
+    description: >
+      Release dates ListenBrainz lists for fresh releases versus the first-release-date MusicBrainz
+      publishes for the same release group. A group's date is the earliest of its releases, so it
+      can legitimately be earlier than one edition's date.
+    config:
+      contract: {enforced: true}
+    columns:
+      - name: release_mbid
+        data_type: varchar
+        description: MusicBrainz release MBID.
+        data_tests: [unique, not_null]
+      - name: release_group_mbid
+        data_type: varchar
+        description: MusicBrainz release group MBID.
+      - name: release_name
+        data_type: varchar
+        description: Release title.
+      - name: listenbrainz_release_date
+        data_type: date
+        description: Date in ListenBrainz fresh releases.
+      - name: musicbrainz_first_release_date
+        data_type: date
+        description: Release group first-release-date (null when partial, e.g. year only).
+      - name: musicbrainz_first_release_date_raw
+        data_type: varchar
+        description: The date string as MusicBrainz returns it.
+      - name: days_difference
+        data_type: bigint
+        description: listenbrainz_release_date - musicbrainz_first_release_date in days.
