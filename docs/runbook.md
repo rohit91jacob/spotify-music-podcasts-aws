@@ -64,6 +64,10 @@ reported as `already_in_table`.
    item, and listens that ListenBrainz could not map to MusicBrainz.
 4. Fix and rerun `uv run musicpods run`. To publish anyway while investigating, set
    `MUSICPODS_DQ_FAIL_ON_ERROR=false` for one run (results are still recorded).
+5. If the bad payload itself is in bronze, a same-day rerun will not replace it: bronze keeps
+   the first version of each file per day and logs `already landed with different content` for
+   a new one. Move the offending `bronze/<source>/<dataset>/dt=<day>/<name>.json.gz` aside
+   (and its line in `bronze/_manifest.jsonl`) before rerunning, so the source is fetched again.
 
 Bad Firehose records never fail a run: they go to `ops/dlq/listen_events.jsonl` with a reason
 (`unparseable_json`, `missing:<field>`, `event_id_mismatch`, ...). Inspect, fix the producer, and
@@ -122,3 +126,11 @@ schedules in repositories without activity for 60 days.
 Alarms: `pipeline-failed` (any failed execution), `pipeline-not-started` (no execution in 26 h),
 `firehose-s3-freshness` (records waiting more than 15 minutes), and the monthly budget
 (80% actual, 100% forecast). All notify the alerts SNS topic.
+
+## Unexplained local crash (Windows)
+
+During review, one of five local runs on Windows (a sampled live run) stopped inside the
+`listen-events-to-iceberg` step with exit code 127 and no Python traceback. Running the same
+command again completed normally, and two further runs from the same bronze did not reproduce
+it. The cause is not known; it has not been seen in a test or fixture run. Because every step is
+rerun-safe, the remedy is to run `uv run musicpods run` again.

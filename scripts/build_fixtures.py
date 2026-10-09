@@ -1,6 +1,6 @@
 """Build the committed REAL fixtures (ListenBrainz + MusicBrainz) from a live bronze tree.
 
-    uv run python scripts/build_fixtures.py ~/projects/_data/spotify-music-podcasts-aws/live
+    uv run python scripts/build_fixtures.py <data-dir-of-a-live-run>
 
 * ListenBrainz data is CC0; MusicBrainz core data is CC0 and its tags (genres) are
   CC BY-NC-SA 3.0 - see DATA_LICENSE.md. Apple/RSS data is never copied (synthetic fixtures

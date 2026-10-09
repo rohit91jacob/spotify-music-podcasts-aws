@@ -131,7 +131,7 @@ def test_per_host_pacing():
 
 
 # ----------------------------------------------------------------------------- bronze
-def test_bronze_write_is_idempotent_and_immutable(tmp_path):
+def test_bronze_write_is_idempotent_and_immutable(tmp_path, caplog):
     b = Bronze(tmp_path)
     d = date(2026, 10, 9)
     p1 = b.write("src", "ds", d, "a", {"x": 1})
@@ -139,8 +139,10 @@ def test_bronze_write_is_idempotent_and_immutable(tmp_path):
     assert p1 == p2
     assert len((tmp_path / "_manifest.jsonl").read_text().splitlines()) == 1
     # A different payload under the same name keeps the first snapshot of the day...
-    b.write("src", "ds", d, "a", {"x": 2})
+    with caplog.at_level("WARNING", logger="musicpods.bronze"):
+        b.write("src", "ds", d, "a", {"x": 2})
     assert b.read(p1) == {"x": 1}
+    assert "different content" in caplog.text  # never silently
     # ...or is refused when asked to.
     with pytest.raises(BronzeConflictError):
         b.write("src", "ds", d, "a", {"x": 2}, on_conflict="error")

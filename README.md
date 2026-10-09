@@ -403,6 +403,9 @@ docs/             data_dictionary.md, runbook.md, verification.md
   resolved in [docs/verification.md](docs/verification.md).
 * **Local Windows runs** print harmless faulthandler dumps from `platform._wmi_query` during
   imports. They do not affect results.
+* **One unexplained local crash.** One sampled live run on Windows exited with code 127 and no
+  traceback in the Iceberg sink step; rerunning completed it and the crash did not reproduce
+  ([runbook](docs/runbook.md#unexplained-local-crash-windows)).
 
 ## License
 

@@ -3,7 +3,9 @@
 Layout: ``bronze/<source>/<dataset>/dt=YYYY-MM-DD/<name>.json.gz`` plus an append-only
 ``bronze/_manifest.jsonl`` with the sha256 of every file. Files are written atomically
 (temp file + rename). Writing the same name twice with the same content is a no-op, so
-re-running an ingest is safe; different content under an existing name is refused.
+re-running an ingest is safe. Different content under an existing name keeps the first version
+by default (one snapshot per source and day wins; a warning is logged) or raises
+``BronzeConflictError`` with ``on_conflict="error"``.
 
 Committed test fixtures use the same tree with plain ``.json`` files, so the pipeline can be
 pointed at ``tests/fixtures/bronze`` instead of the network (``--from-dir``).
@@ -14,12 +16,15 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import logging
 import shutil
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
+
+log = logging.getLogger(__name__)
 
 
 class BronzeConflictError(RuntimeError):
@@ -72,7 +77,13 @@ class Bronze:
         target = self.path_for(source, dataset, dt, name)
         if target.exists():
             existing = hashlib.sha256(_read_bytes(target)).hexdigest()
-            if existing == digest or on_conflict == "keep":
+            if existing == digest:
+                return target
+            if on_conflict == "keep":
+                log.warning(
+                    "bronze %s already landed with different content; keeping the first version",
+                    target.relative_to(self.root).as_posix(),
+                )
                 return target
             raise BronzeConflictError(f"{target} exists with different content")
         target.parent.mkdir(parents=True, exist_ok=True)
