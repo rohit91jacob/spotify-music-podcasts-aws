@@ -1,0 +1,104 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "spotify-music-podcasts-aws"
+version = "0.1.0"
+description = "Spotify-style music and podcast analytics on an emulated AWS lakehouse: ListenBrainz listens replayed through Kinesis Data Firehose into Iceberg, Glue-style batch jobs, dbt marts, Step Functions orchestration."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+# 3.12 locally and in CI; 3.13 is the runtime of the deployed Glue 6.0 jobs.
+requires-python = ">=3.12,<3.14"
+authors = [{ name = "rohit91jacob" }]
+keywords = ["listenbrainz", "musicbrainz", "podcasts", "iceberg", "firehose", "dbt", "duckdb", "aws"]
+dependencies = [
+  "boto3==1.43.110",
+  # moto is a runtime dependency on purpose: the default (no endpoint) mode runs every AWS SDK
+  # call against moto in-process instead of a real account.
+  "moto[s3,firehose,stepfunctions,events,scheduler]==5.2.3",
+  "pyiceberg[sql-sqlite,pyarrow,pyiceberg-core]==0.12.0",
+  "fsspec>=2025.1",
+  "pyarrow>=21,<27",
+  "duckdb==1.5.6",
+  "dbt-core>=1.11,<1.13",
+  "dbt-duckdb==1.11.0",
+  "requests>=2.32,<3",
+  "defusedxml==0.7.1",
+]
+
+[project.optional-dependencies]
+# Compiles the same dbt project for Amazon Athena (Iceberg tables in the Glue catalog).
+athena = ["dbt-athena-community==1.11.1"]
+
+[project.scripts]
+musicpods = "musicpods.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/rohit91jacob/spotify-music-podcasts-aws"
+ListenBrainz = "https://listenbrainz.org/"
+MusicBrainz = "https://musicbrainz.org/"
+
+[dependency-groups]
+dev = [
+  "pytest>=9,<10",
+  "pytest-cov>=7,<8",
+  "responses>=0.25,<1",
+  # moto_server: a network AWS endpoint for the integration test (CI also runs it on LocalStack).
+  "moto[server]==5.2.3",
+  "ruff>=0.16,<0.17",
+  "pre-commit>=4,<5",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/musicpods"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+extend-exclude = ["dbt/target", "dbt/dbt_packages", "dbt/logs", "data", "site"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "C4", "RUF", "PTH", "PIE", "RET", "TID", "S", "T20"]
+ignore = [
+  "E501",   # ruff format owns line length; long strings/SQL are left intact
+  "RET504", # assigning before return keeps transformations readable
+  "S608",   # SQL is built from internal identifiers only, never from user input
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S108", "PTH", "T20"]
+"scripts/**" = ["T201", "S311"]
+"src/musicpods/cli.py" = ["T201"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["musicpods"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+  "e2e: end-to-end pipeline runs on the committed fixtures (slower)",
+  "integration: needs an AWS emulator endpoint at MUSICPODS_AWS_ENDPOINT_URL (LocalStack in CI)",
+  "live: downloads real data from the public APIs (network)",
+]
+filterwarnings = [
+  "ignore::DeprecationWarning:dbt.*",
+  "ignore::DeprecationWarning:botocore.*",
+  "ignore::DeprecationWarning:moto.*",
+  # overwrite() on a new or empty table: nothing to delete, nothing wrong.
+  "ignore:Delete operation did not match any records:UserWarning",
+]
+
+[tool.coverage.run]
+source = ["musicpods"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
