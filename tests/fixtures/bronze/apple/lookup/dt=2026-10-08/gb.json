@@ -1,0 +1,406 @@
+{
+ "_synthetic": true,
+ "country": "gb",
+ "results": [
+  {
+   "artistName": "SYNTHETIC Publisher 03",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000003,
+   "collectionName": "SYNTHETIC Show 03",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000003.xml",
+   "genres": [
+    "True Crime",
+    "Podcasts"
+   ],
+   "primaryGenreName": "True Crime",
+   "releaseDate": "2026-10-08T05:20:00Z",
+   "trackCount": 365
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 05",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000005,
+   "collectionName": "SYNTHETIC Show 05",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000005.xml",
+   "genres": [
+    "Business",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Business",
+   "releaseDate": "2026-09-19T12:59:00Z",
+   "trackCount": 36
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 06",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000006,
+   "collectionName": "SYNTHETIC Show 06",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000006.xml",
+   "genres": [
+    "Sports",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Sports",
+   "releaseDate": "2026-10-07T12:11:49Z",
+   "trackCount": 30
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 09",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000009,
+   "collectionName": "SYNTHETIC Show 09",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000009.xml",
+   "genres": [
+    "Comedy",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Comedy",
+   "releaseDate": "2026-10-05T05:20:00Z",
+   "trackCount": 175
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 11",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000011,
+   "collectionName": "SYNTHETIC Show 11",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000011.xml",
+   "genres": [
+    "Society & Culture",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Society & Culture",
+   "releaseDate": "2026-10-06T05:20:00Z",
+   "trackCount": 71
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 13",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000013,
+   "collectionName": "SYNTHETIC Show 13",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000013.xml",
+   "genres": [
+    "Sports",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Sports",
+   "releaseDate": "2026-10-03T05:20:00Z",
+   "trackCount": 83
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 01",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000014,
+   "collectionName": "SYNTHETIC Show 14",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000014.xml",
+   "genres": [
+    "History",
+    "Podcasts"
+   ],
+   "primaryGenreName": "History",
+   "releaseDate": "2026-09-30T05:20:00Z",
+   "trackCount": 308
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 03",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000016,
+   "collectionName": "SYNTHETIC Show 16",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000016.xml",
+   "genres": [
+    "Comedy",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Comedy",
+   "releaseDate": "2026-10-07T15:46:54Z",
+   "trackCount": 59
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 06",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000019,
+   "collectionName": "SYNTHETIC Show 19",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000019.xml",
+   "genres": [
+    "Business",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Business",
+   "releaseDate": "2026-09-30T05:20:00Z",
+   "trackCount": 370
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 08",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000021,
+   "collectionName": "SYNTHETIC Show 21",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000021.xml",
+   "genres": [
+    "History",
+    "Podcasts"
+   ],
+   "primaryGenreName": "History",
+   "releaseDate": "2026-10-07T05:20:00Z",
+   "trackCount": 186
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 09",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000022,
+   "collectionName": "SYNTHETIC Show 22",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000022.xml",
+   "genres": [
+    "News",
+    "Podcasts"
+   ],
+   "primaryGenreName": "News",
+   "releaseDate": "2026-10-05T02:10:11Z",
+   "trackCount": 54
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 10",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000023,
+   "collectionName": "SYNTHETIC Show 23",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000023.xml",
+   "genres": [
+    "Comedy",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Comedy",
+   "releaseDate": "2026-10-08T05:20:00Z",
+   "trackCount": 113
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 11",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000024,
+   "collectionName": "SYNTHETIC Show 24",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000024.xml",
+   "genres": [
+    "True Crime",
+    "Podcasts"
+   ],
+   "primaryGenreName": "True Crime",
+   "releaseDate": "2026-10-08T05:20:00Z",
+   "trackCount": 361
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 12",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000025,
+   "collectionName": "SYNTHETIC Show 25",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000025.xml",
+   "genres": [
+    "Society & Culture",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Society & Culture",
+   "releaseDate": "2026-10-02T05:20:00Z",
+   "trackCount": 386
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 13",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000026,
+   "collectionName": "SYNTHETIC Show 26",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000026.xml",
+   "genres": [
+    "Business",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Business",
+   "releaseDate": "2026-10-07T06:50:36Z",
+   "trackCount": 30
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 02",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000028,
+   "collectionName": "SYNTHETIC Show 28",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000028.xml",
+   "genres": [
+    "History",
+    "Podcasts"
+   ],
+   "primaryGenreName": "History",
+   "releaseDate": "2026-10-03T16:36:47Z",
+   "trackCount": 50
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 04",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000030,
+   "collectionName": "SYNTHETIC Show 30",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000030.xml",
+   "genres": [
+    "Comedy",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Comedy",
+   "releaseDate": "2026-09-08T09:05:26Z",
+   "trackCount": 46
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 05",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000031,
+   "collectionName": "SYNTHETIC Show 31",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000031.xml",
+   "genres": [
+    "True Crime",
+    "Podcasts"
+   ],
+   "primaryGenreName": "True Crime",
+   "releaseDate": "2026-09-29T05:20:00Z",
+   "trackCount": 76
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 06",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000032,
+   "collectionName": "SYNTHETIC Show 32",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000032.xml",
+   "genres": [
+    "Society & Culture",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Society & Culture",
+   "releaseDate": "2026-10-05T05:20:00Z",
+   "trackCount": 113
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 07",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000033,
+   "collectionName": "SYNTHETIC Show 33",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000033.xml",
+   "genres": [
+    "Business",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Business",
+   "releaseDate": "2026-10-08T05:20:00Z",
+   "trackCount": 255
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 08",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000034,
+   "collectionName": "SYNTHETIC Show 34",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000034.xml",
+   "genres": [
+    "Sports",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Sports",
+   "releaseDate": "2026-10-07T05:20:00Z",
+   "trackCount": 98
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 09",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000035,
+   "collectionName": "SYNTHETIC Show 35",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000035.xml",
+   "genres": [
+    "History",
+    "Podcasts"
+   ],
+   "primaryGenreName": "History",
+   "releaseDate": "2026-10-03T05:20:00Z",
+   "trackCount": 396
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 10",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000036,
+   "collectionName": "SYNTHETIC Show 36",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000036.xml",
+   "genres": [
+    "News",
+    "Podcasts"
+   ],
+   "primaryGenreName": "News",
+   "releaseDate": "2026-10-08T05:20:00Z",
+   "trackCount": 59
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 12",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000038,
+   "collectionName": "SYNTHETIC Show 38",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000038.xml",
+   "genres": [
+    "True Crime",
+    "Podcasts"
+   ],
+   "primaryGenreName": "True Crime",
+   "releaseDate": "2026-10-04T15:48:15Z",
+   "trackCount": 52
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 13",
+   "collectionExplicitness": "notExplicit",
+   "collectionId": 900000039,
+   "collectionName": "SYNTHETIC Show 39",
+   "contentAdvisoryRating": "Clean",
+   "country": "GB",
+   "feedUrl": "https://feeds.example.invalid/900000039.xml",
+   "genres": [
+    "Society & Culture",
+    "Podcasts"
+   ],
+   "primaryGenreName": "Society & Culture",
+   "releaseDate": "2026-09-29T05:20:00Z",
+   "trackCount": 374
+  }
+ ]
+}

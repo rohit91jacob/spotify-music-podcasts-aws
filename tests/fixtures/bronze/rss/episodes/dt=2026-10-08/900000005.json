@@ -1,0 +1,260 @@
+{
+ "_synthetic": true,
+ "fetched_at": "2026-10-08T05:20:00+00:00",
+ "items": [
+  {
+   "duration_seconds": 4309,
+   "episode_key": "000035a4e9050000",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2026-09-19T12:59:00+00:00"
+  },
+  {
+   "duration_seconds": 3036,
+   "episode_key": "000035a4e9050001",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2026-08-15T22:28:57+00:00"
+  },
+  {
+   "duration_seconds": 1866,
+   "episode_key": "000035a4e9050002",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2026-07-15T10:55:08+00:00"
+  },
+  {
+   "duration_seconds": 2236,
+   "episode_key": "000035a4e9050003",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2026-06-10T03:54:04+00:00"
+  },
+  {
+   "duration_seconds": 3788,
+   "episode_key": "000035a4e9050004",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2026-05-09T00:08:18+00:00"
+  },
+  {
+   "duration_seconds": 3225,
+   "episode_key": "000035a4e9050005",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2026-04-04T19:03:28+00:00"
+  },
+  {
+   "duration_seconds": 4306,
+   "episode_key": "000035a4e9050006",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2026-03-02T07:57:37+00:00"
+  },
+  {
+   "duration_seconds": 1410,
+   "episode_key": "000035a4e9050007",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2026-01-26T20:34:01+00:00"
+  },
+  {
+   "duration_seconds": 2376,
+   "episode_key": "000035a4e9050008",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-12-28T04:31:18+00:00"
+  },
+  {
+   "duration_seconds": 2756,
+   "episode_key": "000035a4e9050009",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-12-01T08:55:25+00:00"
+  },
+  {
+   "duration_seconds": 1463,
+   "episode_key": "000035a4e9050010",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-10-31T02:21:26+00:00"
+  },
+  {
+   "duration_seconds": 3550,
+   "episode_key": "000035a4e9050011",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-10-03T00:44:03+00:00"
+  },
+  {
+   "duration_seconds": 1155,
+   "episode_key": "000035a4e9050012",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-08-26T11:52:45+00:00"
+  },
+  {
+   "duration_seconds": 2077,
+   "episode_key": "000035a4e9050013",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-07-23T18:25:38+00:00"
+  },
+  {
+   "duration_seconds": 3213,
+   "episode_key": "000035a4e9050014",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-06-24T07:28:08+00:00"
+  },
+  {
+   "duration_seconds": 2152,
+   "episode_key": "000035a4e9050015",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-05-21T17:22:28+00:00"
+  },
+  {
+   "duration_seconds": 3788,
+   "episode_key": "000035a4e9050016",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-04-08T15:59:16+00:00"
+  },
+  {
+   "duration_seconds": 2402,
+   "episode_key": "000035a4e9050017",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-03-10T05:10:59+00:00"
+  },
+  {
+   "duration_seconds": 3396,
+   "episode_key": "000035a4e9050018",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-02-11T00:38:36+00:00"
+  },
+  {
+   "duration_seconds": 3912,
+   "episode_key": "000035a4e9050019",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2025-01-14T15:45:29+00:00"
+  },
+  {
+   "duration_seconds": 3164,
+   "episode_key": "000035a4e9050020",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-12-15T20:26:14+00:00"
+  },
+  {
+   "duration_seconds": 903,
+   "episode_key": "000035a4e9050021",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-11-16T01:38:53+00:00"
+  },
+  {
+   "duration_seconds": 1626,
+   "episode_key": "000035a4e9050022",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-10-12T12:48:38+00:00"
+  },
+  {
+   "duration_seconds": 3156,
+   "episode_key": "000035a4e9050023",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-09-12T06:58:04+00:00"
+  },
+  {
+   "duration_seconds": 1250,
+   "episode_key": "000035a4e9050024",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-08-06T09:49:58+00:00"
+  },
+  {
+   "duration_seconds": 1277,
+   "episode_key": "000035a4e9050025",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-07-08T12:01:35+00:00"
+  },
+  {
+   "duration_seconds": 2657,
+   "episode_key": "000035a4e9050026",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-06-09T08:19:02+00:00"
+  },
+  {
+   "duration_seconds": 3911,
+   "episode_key": "000035a4e9050027",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-05-09T18:36:12+00:00"
+  },
+  {
+   "duration_seconds": 2949,
+   "episode_key": "000035a4e9050028",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-04-13T03:03:09+00:00"
+  },
+  {
+   "duration_seconds": 3219,
+   "episode_key": "000035a4e9050029",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-03-14T03:17:54+00:00"
+  },
+  {
+   "duration_seconds": 1103,
+   "episode_key": "000035a4e9050030",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-02-12T08:39:02+00:00"
+  },
+  {
+   "duration_seconds": 3629,
+   "episode_key": "000035a4e9050031",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2024-01-21T20:52:24+00:00"
+  },
+  {
+   "duration_seconds": 4425,
+   "episode_key": "000035a4e9050032",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2023-12-19T17:04:57+00:00"
+  },
+  {
+   "duration_seconds": 1447,
+   "episode_key": "000035a4e9050033",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2023-11-16T19:59:06+00:00"
+  },
+  {
+   "duration_seconds": 2902,
+   "episode_key": "000035a4e9050034",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2023-10-17T02:32:03+00:00"
+  },
+  {
+   "duration_seconds": 2440,
+   "episode_key": "000035a4e9050035",
+   "episode_type": "full",
+   "has_enclosure": true,
+   "published_at": "2023-09-19T22:09:54+00:00"
+  }
+ ],
+ "podcast_id": "900000005",
+ "status": "ok"
+}

@@ -1,0 +1,258 @@
+{
+ "_synthetic": true,
+ "country": "gb",
+ "fetched_at": "2026-10-05T05:10:00+00:00",
+ "results": [
+  {
+   "artistName": "SYNTHETIC Publisher 04",
+   "genres": [
+    "Comedy"
+   ],
+   "id": "900000030",
+   "name": "SYNTHETIC Show 30",
+   "rank": 1,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000030"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 05",
+   "genres": [
+    "Business"
+   ],
+   "id": "900000005",
+   "name": "SYNTHETIC Show 05",
+   "rank": 2,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000005"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 08",
+   "genres": [
+    "History"
+   ],
+   "id": "900000021",
+   "name": "SYNTHETIC Show 21",
+   "rank": 3,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000021"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 03",
+   "genres": [
+    "Comedy"
+   ],
+   "id": "900000016",
+   "name": "SYNTHETIC Show 16",
+   "rank": 4,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000016"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 06",
+   "genres": [
+    "Business"
+   ],
+   "id": "900000019",
+   "name": "SYNTHETIC Show 19",
+   "rank": 5,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000019"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 10",
+   "genres": [
+    "News"
+   ],
+   "id": "900000036",
+   "name": "SYNTHETIC Show 36",
+   "rank": 6,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000036"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 07",
+   "genres": [
+    "Business"
+   ],
+   "id": "900000033",
+   "name": "SYNTHETIC Show 33",
+   "rank": 7,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000033"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 08",
+   "genres": [
+    "Sports"
+   ],
+   "id": "900000034",
+   "name": "SYNTHETIC Show 34",
+   "rank": 8,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000034"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 02",
+   "genres": [
+    "History"
+   ],
+   "id": "900000028",
+   "name": "SYNTHETIC Show 28",
+   "rank": 9,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000028"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 11",
+   "genres": [
+    "True Crime"
+   ],
+   "id": "900000024",
+   "name": "SYNTHETIC Show 24",
+   "rank": 10,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000024"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 12",
+   "genres": [
+    "Society & Culture"
+   ],
+   "id": "900000025",
+   "name": "SYNTHETIC Show 25",
+   "rank": 11,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000025"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 06",
+   "genres": [
+    "Sports"
+   ],
+   "id": "900000006",
+   "name": "SYNTHETIC Show 06",
+   "rank": 12,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000006"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 09",
+   "genres": [
+    "News"
+   ],
+   "id": "900000022",
+   "name": "SYNTHETIC Show 22",
+   "rank": 13,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000022"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 13",
+   "genres": [
+    "Society & Culture"
+   ],
+   "id": "900000039",
+   "name": "SYNTHETIC Show 39",
+   "rank": 14,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000039"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 01",
+   "genres": [
+    "History"
+   ],
+   "id": "900000014",
+   "name": "SYNTHETIC Show 14",
+   "rank": 15,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000014"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 12",
+   "genres": [
+    "True Crime"
+   ],
+   "id": "900000038",
+   "name": "SYNTHETIC Show 38",
+   "rank": 16,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000038"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 09",
+   "genres": [
+    "History"
+   ],
+   "id": "900000035",
+   "name": "SYNTHETIC Show 35",
+   "rank": 17,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000035"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 09",
+   "genres": [
+    "Comedy"
+   ],
+   "id": "900000009",
+   "name": "SYNTHETIC Show 09",
+   "rank": 18,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000009"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 13",
+   "genres": [
+    "Business"
+   ],
+   "id": "900000026",
+   "name": "SYNTHETIC Show 26",
+   "rank": 19,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000026"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 03",
+   "genres": [
+    "True Crime"
+   ],
+   "id": "900000003",
+   "name": "SYNTHETIC Show 03",
+   "rank": 20,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000003"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 13",
+   "genres": [
+    "Sports"
+   ],
+   "id": "900000013",
+   "name": "SYNTHETIC Show 13",
+   "rank": 21,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000013"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 01",
+   "genres": [
+    "News"
+   ],
+   "id": "900000001",
+   "name": "SYNTHETIC Show 01",
+   "rank": 22,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000001"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 06",
+   "genres": [
+    "Society & Culture"
+   ],
+   "id": "900000032",
+   "name": "SYNTHETIC Show 32",
+   "rank": 23,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000032"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 10",
+   "genres": [
+    "Comedy"
+   ],
+   "id": "900000023",
+   "name": "SYNTHETIC Show 23",
+   "rank": 24,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000023"
+  },
+  {
+   "artistName": "SYNTHETIC Publisher 03",
+   "genres": [
+    "News"
+   ],
+   "id": "900000029",
+   "name": "SYNTHETIC Show 29",
+   "rank": 25,
+   "url": "https://podcasts.example.invalid/gb/podcast/id900000029"
+  }
+ ],
+ "updated": "2026-10-05T05:00:00+00:00"
+}
