@@ -1,0 +1,6 @@
+# Example remote-state settings. The bucket must exist (versioned, encrypted) before init.
+bucket       = "REPLACE-ME-terraform-state"
+key          = "musicpods/dev/terraform.tfstate"
+region       = "eu-west-1"
+encrypt      = true
+use_lockfile = true
