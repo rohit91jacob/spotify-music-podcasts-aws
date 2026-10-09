@@ -1,0 +1,137 @@
+name: refresh
+
+# Daily data refresh and results site. Runs the same Step Functions definition the pipeline
+# deploys (interpreted locally, AWS emulated by moto in-process) against the live public APIs:
+# ListenBrainz (CC0), MusicBrainz (1 req/s), Apple's podcast chart RSS generator, iTunes Lookup
+# and the podcasts' own RSS feeds. None of them needs credentials.
+#
+# Key-gated sources (Last.fm, Podcast Index, Spotify) run only when their repository secrets are
+# set; otherwise the ingest-optional step skips them and the site says so.
+
+on:
+  schedule:
+    # Daily. Apple's top charts and ListenBrainz's statistics both update daily, and a chart
+    # longevity series needs one snapshot per day. 06:15 UTC is after ListenBrainz's nightly
+    # statistics run has usually finished.
+    - cron: "15 6 * * *"
+  workflow_dispatch:
+    inputs:
+      full_replay:
+        description: "Replay every landed listen into Firehose again (the sink deduplicates)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+env:
+  UV_LOCKED: "1"
+  PYTHON_VERSION: "3.12"
+  PYTHONIOENCODING: utf-8
+  # A fixed path: bronze, the Iceberg warehouse and ops state are cached between runs so the
+  # ingest stays incremental and chart history accumulates.
+  MUSICPODS_DATA_DIR: /home/runner/musicpods-data
+  MUSICPODS_LOG_FORMAT: json
+  # Stable pseudonyms across runs without committing a salt.
+  MUSICPODS_PSEUDONYM_SALT: ${{ secrets.MUSICPODS_PSEUDONYM_SALT }}
+  LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+  PODCASTINDEX_API_KEY: ${{ secrets.PODCASTINDEX_API_KEY }}
+  PODCASTINDEX_API_SECRET: ${{ secrets.PODCASTINDEX_API_SECRET }}
+  SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+  SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+
+jobs:
+  build:
+    name: refresh data + build site
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+      - name: Restore data from the previous run
+        id: data
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.MUSICPODS_DATA_DIR }}
+          key: musicpods-data-${{ github.run_id }}
+          restore-keys: musicpods-data-
+      - name: Report data state
+        run: |
+          if [ -n "${{ steps.data.outputs.cache-matched-key }}" ]; then
+            echo "restored from: ${{ steps.data.outputs.cache-matched-key }}"
+            du -sh "$MUSICPODS_DATA_DIR"
+          else
+            echo "restored from: nothing (first run; full download)"
+          fi
+          for s in LASTFM_API_KEY PODCASTINDEX_API_KEY SPOTIFY_CLIENT_ID; do
+            if [ -n "${!s}" ]; then echo "$s: set"; else echo "$s: not set (source skipped)"; fi
+          done
+      - run: uv sync --frozen
+      - name: Pipeline (exit 3 = data-quality gate failed)
+        run: uv run musicpods run ${{ inputs.full_replay && '--full-replay' || '' }}
+      - name: Save data for the next run
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.MUSICPODS_DATA_DIR }}
+          key: musicpods-data-${{ github.run_id }}
+      - name: Reconcile against published figures and build the site
+        run: |
+          uv run musicpods verify --out site/verification.json
+          uv run musicpods report --out site
+          echo "### Results site" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat site/summary.json >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    name: publish to GitHub Pages
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  alert:
+    name: open or update a failure issue
+    needs: [build, deploy]
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TITLE: Scheduled refresh is failing
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Open or comment on the tracking issue
+        run: |
+          body="The scheduled \`refresh\` run failed: $RUN_URL
+
+          See docs/runbook.md#scheduled-refresh-failed. Close this issue once a run is green."
+          number=$(gh issue list --state open --search "in:title \"$TITLE\"" --json number,title \
+            --jq "map(select(.title == \"$TITLE\")) | .[0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "Failed again: $RUN_URL"
+          else
+            gh issue create --title "$TITLE" --body "$body"
+          fi

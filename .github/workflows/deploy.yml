@@ -1,0 +1,64 @@
+name: deploy
+
+# Publishes the package wheel and the Glue entrypoint to the artifacts bucket and, optionally,
+# starts one pipeline execution in a REAL AWS account. Gated twice:
+#   1. the repository variable AWS_DEPLOY_ROLE_ARN must be set (it is not, in this repository);
+#   2. the job runs in the `aws-dev` environment (add required reviewers there).
+# Authentication is GitHub OIDC -> sts:AssumeRoleWithWebIdentity (infra/modules/github_oidc).
+# There are no static AWS keys anywhere. Infrastructure itself is applied by an operator with
+# `terraform apply`, never from CI.
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_execution:
+        description: "Start a pipeline execution after publishing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: publish wheel + entrypoint (OIDC)
+    if: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: aws-dev
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'eu-west-1' }}
+      ARTIFACTS_BUCKET: ${{ vars.MUSICPODS_ARTIFACTS_BUCKET }}
+      STATE_MACHINE_ARN: ${{ vars.MUSICPODS_STATE_MACHINE_ARN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.12"
+      - name: Check configuration
+        run: |
+          test -n "$ARTIFACTS_BUCKET" || { echo "set the MUSICPODS_ARTIFACTS_BUCKET variable"; exit 1; }
+      - name: Build the wheel
+        run: uv build --wheel
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-session-name: musicpods-deploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Upload artifacts
+        run: |
+          aws s3 cp dist/*.whl "s3://$ARTIFACTS_BUCKET/wheels/" --sse aws:kms
+          aws s3 cp src/musicpods/glue/entrypoint.py "s3://$ARTIFACTS_BUCKET/glue/entrypoint.py" --sse aws:kms
+      - name: Start a pipeline execution
+        if: ${{ inputs.start_execution && env.STATE_MACHINE_ARN != '' }}
+        run: |
+          aws stepfunctions start-execution --state-machine-arn "$STATE_MACHINE_ARN" \
+            --name "manual-${{ github.run_id }}" \
+            --input "{\"run_date\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
