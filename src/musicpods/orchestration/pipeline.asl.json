@@ -1,0 +1,142 @@
+{
+  "Comment": "musicpods daily pipeline. Deployed by infra/modules/orchestration (templatefile) and executed locally by `musicpods run` (musicpods.orchestration.runner). Every Task is a Glue job; the job name suffix after the prefix maps to musicpods.orchestration.steps.",
+  "StartAt": "Ingest",
+  "States": {
+    "Ingest": {
+      "Type": "Parallel",
+      "Comment": "Music and podcast sources are independent; MusicBrainz needs the landed listens.",
+      "Branches": [
+        {
+          "StartAt": "IngestListenBrainz",
+          "States": {
+            "IngestListenBrainz": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "${job_prefix}-ingest-listenbrainz",
+                "Arguments": {"--run_date.$": "$.run_date"}
+              },
+              "Retry": [{"ErrorEquals": ["States.TaskFailed"], "IntervalSeconds": 60, "MaxAttempts": 2, "BackoffRate": 2.0}],
+              "Next": "IngestMusicBrainz"
+            },
+            "IngestMusicBrainz": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "${job_prefix}-ingest-musicbrainz",
+                "Arguments": {"--run_date.$": "$.run_date"}
+              },
+              "Retry": [{"ErrorEquals": ["States.TaskFailed"], "IntervalSeconds": 60, "MaxAttempts": 2, "BackoffRate": 2.0}],
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "IngestPodcasts",
+          "States": {
+            "IngestPodcasts": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "${job_prefix}-ingest-podcasts",
+                "Arguments": {"--run_date.$": "$.run_date"}
+              },
+              "Retry": [{"ErrorEquals": ["States.TaskFailed"], "IntervalSeconds": 60, "MaxAttempts": 2, "BackoffRate": 2.0}],
+              "Next": "IngestOptional"
+            },
+            "IngestOptional": {
+              "Type": "Task",
+              "Comment": "Key-gated sources; the job exits 0 and skips each source whose secret is absent.",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "${job_prefix}-ingest-optional",
+                "Arguments": {"--run_date.$": "$.run_date"}
+              },
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": null,
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "NotifyFailure"}],
+      "Next": "ReplayListens"
+    },
+    "ReplayListens": {
+      "Type": "Task",
+      "Comment": "Replays new listens into Kinesis Data Firehose (PutRecordBatch).",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${job_prefix}-replay-listens",
+        "Arguments": {"--run_date.$": "$.run_date"}
+      },
+      "ResultPath": null,
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "NotifyFailure"}],
+      "Next": "WaitForFirehoseBuffer"
+    },
+    "WaitForFirehoseBuffer": {
+      "Type": "Wait",
+      "Comment": "Firehose flushes after its buffering interval (60 s); the local runner skips waits.",
+      "Seconds": 90,
+      "Next": "ListenEventsToIceberg"
+    },
+    "ListenEventsToIceberg": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${job_prefix}-listen-events-to-iceberg",
+        "Arguments": {"--run_date.$": "$.run_date"}
+      },
+      "ResultPath": null,
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "NotifyFailure"}],
+      "Next": "BuildRawTables"
+    },
+    "BuildRawTables": {
+      "Type": "Task",
+      "Comment": "Bronze -> typed Iceberg raw tables, DQ-gated before commit.",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${job_prefix}-build-raw-tables",
+        "Arguments": {"--run_date.$": "$.run_date"}
+      },
+      "ResultPath": null,
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "NotifyFailure"}],
+      "Next": "DbtBuild"
+    },
+    "DbtBuild": {
+      "Type": "Task",
+      "Comment": "dbt build (models + tests). Athena in AWS, DuckDB locally.",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${job_prefix}-dbt-build",
+        "Arguments": {"--run_date.$": "$.run_date"}
+      },
+      "ResultPath": null,
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "NotifyFailure"}],
+      "Next": "Maintenance"
+    },
+    "Maintenance": {
+      "Type": "Task",
+      "Comment": "Expire Iceberg snapshots past the retention window.",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${job_prefix}-maintenance",
+        "Arguments": {"--run_date.$": "$.run_date"}
+      },
+      "ResultPath": null,
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "NotifyFailure"}],
+      "Next": "Done"
+    },
+    "Done": {"Type": "Succeed"},
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${alerts_topic_arn}",
+        "Subject": "musicpods pipeline failed",
+        "Message.$": "States.JsonToString($.error)"
+      },
+      "Next": "Failed"
+    },
+    "Failed": {"Type": "Fail", "Error": "PipelineFailed", "Cause": "A step failed; see the execution history."}
+  }
+}
