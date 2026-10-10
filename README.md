@@ -41,7 +41,7 @@ no AWS account was used to build or run this repository.
 10. [Testing and CI](#testing-and-ci)
 11. [Infrastructure and cost](#infrastructure-and-cost)
 12. [Project structure](#project-structure)
-13. [Design decisions](#design-decisions)
+13. [Design rationale](#design-rationale)
 14. [Limitations](#limitations)
 15. [License](#license)
 
@@ -368,21 +368,75 @@ scripts/          build_fixtures.py, make_synthetic_podcast_fixtures.py, gen_dat
 docs/             data_dictionary.md, runbook.md, verification.md
 ```
 
-## Design decisions
+## Design rationale
 
-* **Replay real listens instead of generating events.** The stream is real user behaviour with
-  real timestamps, duplicates and client quirks. `--duplicate-every` exists only as a drill for
-  the dedup path; it is off by default and labelled as such.
-* **Firehose -> S3 -> commit job, not Firehose's native Iceberg destination.** That keeps
-  validation, the dead-letter path and exactly-once dedup in code that the emulators and tests
-  can run. The native destination would be a reasonable choice in production.
-* **One ASL file for both worlds.** Terraform renders it for Step Functions, and the local runner
-  interprets it (Parallel, Retry, Catch, Fail). Local runs and CI therefore exercise the
-  deployed control flow, including the alert path.
-* **Bronze is the history.** Raw tables are rebuilt from bronze in one snapshot per run, which
-  makes reruns trivial and rule changes retroactive. That stays cheap at this scale (tens of MB).
-* **Settled-day reconciliation.** The published statistics lag; comparing the lagging tail would
-  report noise as error. The tail is still reported, separately.
+A few constraints drove the design. The data must be real and public, and the daily refresh must
+run on a GitHub-hosted runner without credentials, carrying its state between runs in the Actions
+cache. No AWS account is used, so every AWS call has to work against an emulator, and the
+Terraform is validated and scanned but never applied. Apple's charts and publishers' feeds cannot
+be redistributed, so CI has no real podcast data to run on. The sources are rate-limited
+(MusicBrainz allows one request per second), which caps how much metadata a run can fetch. And
+every step must be safe to rerun, because rerunning is how a failed run is recovered.
+
+### Architecture decisions
+
+| Decision | Why | Alternatives considered | Trade-off accepted |
+| --- | --- | --- | --- |
+| Replay real ListenBrainz listens as the event stream (`src/musicpods/streaming/replay.py`) | The stream is real user behaviour, with real timestamps, duplicate scrobbles and client quirks, and it can be reconciled with figures ListenBrainz publishes. `--duplicate-every` exists only as a drill for the dedup path; it is off by default | A synthetic event generator; loading listens in batch, with no stream at all | Event time is historical: "live" means a replay, paced by `MUSICPODS_REPLAY_SPEEDUP` (0 sends as fast as possible), and volume is bounded by the 40-user panel |
+| Firehose -> S3 -> a commit job (`listen-events-to-iceberg`), not Firehose's native Iceberg destination | Validation, the dead-letter file (one reason per record) and exactly-once dedup stay in code that the emulators and tests can run (`src/musicpods/streaming/sink.py`) | Firehose's Iceberg destination; Kinesis Data Streams with a Lambda or Flink consumer | A micro-batch hop: listens land after Firehose's 60 s buffer plus a job run (the state machine waits 90 s), and there is one more job to operate |
+| Deterministic `event_id` plus an anti-join: at-least-once delivery, exactly-once rows | `event_id` hashes (user, timestamp, `recording_msid`), so a resent listen keeps its id (`src/musicpods/streaming/events.py`). The sink drops duplicates within the batch and against the table, then moves its cursor only after the Iceberg commit, so a crash in between is harmless | Relying on delivery semantics (Firehose delivers at least once, and backfills and `--full` replays resend on purpose); an Iceberg upsert or `MERGE` on `event_id` | Every commit reads the table's whole `event_id` column: trivial at about 90,000 rows, but linear in table size |
+| Bronze is the history: the 14 batch raw tables and every dbt model are rebuilt in full on each run | Bronze (`src/musicpods/bronze.py`) is immutable and content-addressed, with a sha256 manifest; landing the same content again is a no-op, and the first version of each file per day wins. Each raw table is rebuilt from all of bronze in one atomic Iceberg commit (`src/musicpods/glue/jobs.py`), so reruns are trivial and rule changes retroactive. Only `raw.listen_events` is appended to | Daily `MERGE` into the raw tables; dbt incremental models | Rebuild cost grows with history (every chart snapshot, every MusicBrainz fetch), which stays cheap at tens of MB; a bad payload stays in bronze until it is moved aside ([runbook](docs/runbook.md#data-quality-failure)) |
+| Data-quality gates before every commit, all-or-nothing (`src/musicpods/quality/checks.py`) | An `error` check stops the step with exit code 3 before anything is committed: `build-raw-tables` checks all 14 tables before writing any, and the sink checks each batch before appending it. 103 dbt tests then gate the marts. Gated steps have no Retry, so a failure goes straight to Catch -> SNS | Great Expectations or Soda; AWS Glue Data Quality rules; dbt tests alone, which run only after raw data is committed | The checks are hand-written SQL predicates that DuckDB evaluates over the Arrow batch, with no profiling or UI; one failing raw table holds back the whole raw refresh, and the marts stay at the last good build until it is fixed |
+| One ASL file for both worlds (`src/musicpods/orchestration/pipeline.asl.json`) | Terraform renders it for Step Functions, and the local runner interprets it (Parallel, Retry, Catch, Fail), so local runs and CI exercise the deployed control flow, including the alert path. Unit tests keep the ASL tasks, the local steps and the Terraform job list identical | Airflow (MWAA), Dagster or Prefect; Step Functions Local | The runner covers a subset of ASL (no Choice or Map), runs Parallel branches one after another, skips Wait states and writes the SNS alert to `ops/alerts.jsonl` |
+| Real fixtures where the licence allows, simulated and labelled elsewhere | CI runs the whole pipeline with no network. The 6 committed ListenBrainz users and their MusicBrainz entities are real; Apple's data cannot be redistributed, so the podcast fixtures come from a seeded generator, every show is named `SYNTHETIC Show NN`, and the results site says so when built from them | Recorded HTTP responses (would commit Apple's data); leaving podcasts out of CI | The podcast path is tested on the real payload shapes but not on real-world quirks, and the RSS-vs-Apple episode check agrees with itself by construction |
+| Pseudonymise at ingest and land only what is used (`src/musicpods/sources/listenbrainz.py`) | Listens are public, but landed records carry a salted SHA-256 `user_key` instead of the user name, errors are redacted before they reach public CI logs, and only an allowlist of client fields is kept. RSS guids are hashed and titles are not stored | Landing user names; an unsalted hash, which anyone could recompute from public user names | The panel file in `ops/` keeps user names (the API needs them), so the data directory is never published; the salt must survive between runs, or every pseudonym changes |
+| Reconcile on settled days only (`ver_user_daily_listens`, `stats_settle_days: 3`) | ListenBrainz computes its statistics from a listens snapshot that lags, so comparing the lagging tail would report noise as error. The tail is still reported, separately ([verification](docs/verification.md)) | Comparing every published day; tolerance bands instead of exact matches | A problem in the newest 3 days of a published range shows up only once a later statistics snapshot has settled those days |
+
+### Stack choices
+
+| Layer | Choice | Why this | Why not the alternatives |
+| --- | --- | --- | --- |
+| Runtime and packaging | Python 3.12 (`requires-python` admits the 3.13 that Glue 6.0 runs); uv 0.10 with `uv.lock` | PyIceberg, PyArrow, DuckDB and dbt are all Python, so ingest, sink, jobs, checks and the Glue entrypoint ship as one package and one wheel. `uv sync --frozen` reproduces the locked environment on a laptop and in CI, and uv installs Python itself | Poetry or pip-tools: they lock too, but need an existing Python and resolve more slowly |
+| AWS SDK and emulators | boto3 1.43.110; moto 5.2.3 in-process by default; moto_server and LocalStack 4.4.0 in CI | moto is a runtime dependency on purpose: by default every SDK call runs in-process (`src/musicpods/aws.py`), so a run needs no Docker and no account. `MUSICPODS_AWS_ENDPOINT_URL` sends the same calls to a network endpoint, which CI tests on two different emulators; in a deployed Glue job they go to AWS | LocalStack alone: needs Docker, and newer images need an auth token (hence the pin); a real AWS account: costs money, and none is used |
+| Table format and catalog | Apache Iceberg through PyIceberg 0.12.0 (pyiceberg-core 0.10.1); SQLite `SqlCatalog` locally, `GlueCatalog` when deployed (`src/musicpods/lakehouse.py`) | Atomic commits mean readers see the previous table or the new one, never half of a rebuild; hidden partitioning (`day(listened_at)`) and snapshot expiry (the `maintenance` step) come with the format. PyIceberg writes Iceberg from plain Python with no Spark or JVM, and Athena queries Iceberg tables in the Glue catalog | Delta Lake or Hudi: Athena can only read them, and the dbt project materialises Iceberg (`+table_type: iceberg`); plain Parquet: no atomic replace or snapshot history |
+| Columnar batches | PyArrow 26.0.0 | A typed Arrow schema per raw table (`src/musicpods/glue/schemas.py`) is the contract between landed JSON and Iceberg; a batch goes from its builder to the DuckDB checks to the PyIceberg commit without leaving Arrow | pandas: nullable integers become floats and nested lists become objects unless every dtype is pinned, and it adds a conversion before each commit |
+| Local warehouse and check engine | DuckDB 1.5.6; Amazon Athena (engine version 3, 1 GiB per-query scan limit) when deployed | In-process and file-based, with no server to start. `load_raw` copies each raw table's current snapshot into DuckDB, the role the Glue catalog plays for Athena (`src/musicpods/warehouse.py`), and the same engine runs the DQ predicates over Arrow batches | PostgreSQL: a server to run and load; Spark, locally or on Glue: a JVM for a few MB of data; Athena itself: needs an account |
+| Transformations | dbt-core 1.12.5 with dbt-duckdb 1.11.0 (run) and dbt-athena-community 1.11.1 (compiled in CI, never run) | Tests, enforced contracts on the marts, docs and lineage in one tool; one project for both engines through dispatch macros (`dbt/macros/cross_db.sql`) and schema names that match the Glue databases. Generic tests are defined in the repo, so `dbt build` downloads no packages | SQL run from Python: tests, contracts, docs and lineage would all be home-made; Spark SQL on Glue: a JVM in every local run |
+| HTTP and parsing | requests 2.34.2 behind a small client (`src/musicpods/http.py`); defusedxml 0.7.1 | Synchronous calls suit sources that must be paced anyway (MusicBrainz 1 req/s, iTunes about 20 calls/min). The client adds per-host pacing, `Retry-After`, ListenBrainz's rate-limit headers and a streamed body cap. RSS feeds are untrusted XML, and defusedxml forbids entity declarations and external references | httpx or aiohttp: concurrency buys nothing under per-host pacing; the standard-library XML parsers: entity-expansion safety depends on the bundled expat version |
+| Stream transport | Kinesis Data Firehose, Direct PUT -> S3 (SSE-KMS) | Fully managed, with no shards or consumers to run, and it buffers records into S3 objects that a batch job commits. The producer keeps to the `PutRecordBatch` limits (500 records, 4 MiB) and resends only failed records | Kinesis Data Streams: a consumer to write and run for a few thousand events a day; Amazon MSK: a Kafka cluster billed around the clock |
+| Batch compute | AWS Glue 6.0 (Python 3.13): one job per step, 2 G.1X workers, all running `src/musicpods/glue/entrypoint.py` | Every step is the same `glue:startJobRun.sync` task, with the Glue catalog, a KMS security configuration and CloudWatch logs built in, deployed from the package wheel with no image to build. The entrypoint syncs `bronze/` and `state/ops/` with S3 around the step, so the functions that run in-process locally run unchanged | Glue Python shell: stops at Python 3.9; Lambda: cheaper for the light steps ([cost notes](#infrastructure-and-cost)), but its 15-minute limit is tight for an API-paced first ingest; one container task: cheaper too, but an image to build and push |
+| Orchestration and schedule | Step Functions (Standard) and EventBridge Scheduler in `infra/`; the same ASL interpreted by `src/musicpods/orchestration/runner.py` locally and in `refresh.yml` | ASL is a declarative file that Terraform and a small interpreter can both read, with native Glue `.sync` tasks, Retry/Catch and an SNS failure path; Scheduler adds a flexible window, retries and KMS. With nothing deployed, `refresh.yml` runs the definition daily at 06:15 UTC on a GitHub-hosted runner | Airflow on MWAA: an always-on environment for one 9-step daily run, and a Python DAG the local runner could not share; Dagster or Prefect: another service to host |
+| Serving | One static HTML page and `summary.json` on GitHub Pages (`src/musicpods/report.py`), no JavaScript | Free to host, with nothing to keep running; rebuilt daily from the marts, and it opens from disk too. A deployment would keep it | QuickSight or Superset: an account or a server for a handful of small tables; a JavaScript dashboard: more code to maintain for the same tables |
+| Infrastructure as code | Terraform 1.16.5 with the AWS provider 6.68.0 (`~> 6.68`): a root module and eight child modules, S3 backend with native locking; tflint 0.64.0 (aws ruleset 0.49.0) and checkov 3.3.26 | One module per concern; `templatefile` deploys the very ASL file the local runner executes. CI runs `fmt`, `validate` with `-backend=false`, tflint and checkov (252 checks pass) without an account | AWS CDK or CloudFormation: equally able to describe this stack; Terraform keeps it in declarative HCL with no synth step, and with a plan to review before any apply |
+| Code quality and CI | ruff 0.16.10, pytest 9.1.1, pre-commit 4.6.2, gitleaks 8.30.1; GitHub Actions pinned by commit SHA; OIDC for the manual deploy | ruff lints, sorts imports and formats in one tool; pytest markers (`e2e`, `integration`) keep the end-to-end and emulator-bound tests out of the unit run; pre-commit caps files at 300 KB (keeping fixtures small) and scans for private keys and secrets. The deploy role trusts one repository and environment, so there are no static AWS keys | flake8, isort and black: three tools for what ruff does alone; access keys as repository secrets: a standing credential that can leak |
+
+### What would change in production
+
+* **A first real deployment.** Nothing here has run on AWS (see [Limitations](#limitations)).
+  Applying the Terraform and starting one execution in a sandbox account, as the
+  [runbook](docs/runbook.md#deploying-to-aws-not-done-in-this-repository) describes, would be the
+  first real test of the Glue entrypoint, the `GlueCatalog` branch of `src/musicpods/lakehouse.py`
+  and dbt-athena.
+* **Lighter compute.** Lambda or one container task for the light steps instead of a 2-DPU Spark
+  job each, which the [cost notes](#infrastructure-and-cost) put an order of magnitude cheaper,
+  keeping a Spark job type only for steps whose data outgrows one worker.
+* **Firehose's native Iceberg destination** in place of the commit job. The `event_id` dedupe that
+  backfills and `--full` replays rely on would then move downstream, into dbt staging or a
+  scheduled Iceberg `MERGE`.
+* **Incremental processing at volume.** Full rebuilds from bronze and the sink's whole-column
+  anti-join suit tens of MB. At scale the raw jobs would merge only new bronze partitions, the
+  sink would compare only the `day(listened_at)` partitions its batch touches, and the large dbt
+  models would become incremental (dbt-athena supports `merge` on Iceberg tables).
+* **Scheduling, state and alerts in AWS.** The live refresh runs on a GitHub Actions cron and keeps
+  its cursors as JSON files in the Actions cache, which is evicted after 7 days without use (the
+  panel and chart history then restart); deployed Glue jobs sync the same files to
+  `s3://<lake>/state/ops/` around each run. In production EventBridge Scheduler would start the
+  state machine (already in `infra/`), cursors would move to a store with conditional writes such
+  as DynamoDB, and failures would alert through SNS and the CloudWatch alarms instead of a GitHub
+  issue.
+* **Population instead of a panel.** The panel is 40 users and MusicBrainz lookups are capped (600
+  artists, at one request per second). A population-level version would load the ListenBrainz and
+  MusicBrainz data dumps rather than page through the APIs.
 
 ## Limitations
 
