@@ -77,7 +77,7 @@ replay with `--full`; the sink drops whatever is already in the table.
 
 | Symptom | Likely cause | Action |
 | --- | --- | --- |
-| `ListenBrainz returned no sitewide artist stats` | statistics are being recomputed | rerun later |
+| `ListenBrainz returned no sitewide artist stats` | statistics are being recomputed and no earlier snapshot is cached (a run with one retries 3 times, then seeds the panel from the last snapshot and logs a warning) | rerun later |
 | `listens for u_... failed, skipped this run` | slow or failing listens endpoint for one user | nothing; the next run resumes from that user's cursor |
 | `chart xx unavailable` / `iTunes lookup for xx unavailable` | Apple endpoint timeout or DNS failure | nothing; that storefront is retried by the next run, other storefronts continue |
 | `feed for podcast N failed` | publisher feed down, too large (> `MUSICPODS_RSS_MAX_BYTES`) or malformed | recorded with `status=error:<type>` in bronze; excluded from cadence |

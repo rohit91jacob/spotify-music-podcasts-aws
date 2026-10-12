@@ -166,6 +166,37 @@ def test_errors_never_carry_user_names(settings):
         raise AssertionError("expected an HttpError")
 
 
+@responses.activate
+def test_empty_sitewide_stats_fall_back_to_the_last_snapshot(settings, monkeypatch):
+    monkeypatch.setattr(lb.time, "sleep", lambda _s: None)
+    url = f"{lb.API}/stats/sitewide/artists"
+    bronze = Bronze(settings.bronze_dir)
+    artists = [{"artist_mbid": "a1", "artist_name": "Artist", "listen_count": 5}]
+    responses.get(url, json={"payload": {"artists": artists}})
+    first = lb.ListenBrainzIngest(settings, _http(), bronze, date(2026, 10, 2))
+    assert first.sitewide_artists() == artists
+
+    # A week later ListenBrainz is recomputing: every attempt comes back empty.
+    responses.replace(responses.GET, url, json={"payload": {"artists": []}})
+    later = lb.ListenBrainzIngest(settings, _http(), bronze, TODAY)
+    assert later.sitewide_artists() == artists
+    assert len(responses.calls) == 1 + lb.SITEWIDE_ATTEMPTS
+    assert [f.dt for f in bronze.files(lb.SOURCE, "sitewide_artists")] == [date(2026, 10, 2)]
+
+
+@responses.activate
+def test_empty_sitewide_stats_with_no_snapshot_still_fail(settings, monkeypatch):
+    monkeypatch.setattr(lb.time, "sleep", lambda _s: None)
+    responses.get(f"{lb.API}/stats/sitewide/artists", json={"payload": {"artists": []}})
+    ingest = lb.ListenBrainzIngest(settings, _http(), Bronze(settings.bronze_dir), TODAY)
+    try:
+        ingest.sitewide_artists()
+    except RuntimeError as exc:
+        assert "no sitewide artist stats" in str(exc)
+    else:
+        raise AssertionError("expected a RuntimeError")
+
+
 # ----------------------------------------------------------------------------- MusicBrainz
 def _land_listens(bronze: Bronze) -> None:
     mapping = {"artist_mbids": ["art-1"], "recording_mbid": "rec-1", "release_group_mbid": "rg-1"}

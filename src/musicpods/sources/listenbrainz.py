@@ -39,6 +39,9 @@ log = logging.getLogger(__name__)
 API = "https://api.listenbrainz.org/1"
 SOURCE = "listenbrainz"
 PER_ARTIST = 3
+# Sitewide stats come back empty for a while when ListenBrainz recomputes them.
+SITEWIDE_ATTEMPTS = 3
+SITEWIDE_RETRY_SECONDS = 30
 PAGE_SIZE = 500
 
 
@@ -143,11 +146,27 @@ class ListenBrainzIngest:
 
     # ---------------------------------------------------------------- steps
     def sitewide_artists(self) -> list[dict[str, Any]]:
-        payload = self._get("/stats/sitewide/artists", range="week", count=100)
-        if not payload:
+        """This week's sitewide top artists (the panel's seeds).
+
+        ListenBrainz briefly serves an empty payload while it recomputes sitewide stats. Retry,
+        then fall back to the last landed snapshot so one gap does not fail the refresh; nothing
+        is landed for today in that case, so the sitewide marts keep the previous week.
+        """
+        for attempt in range(SITEWIDE_ATTEMPTS):
+            payload = self._get("/stats/sitewide/artists", range="week", count=100)
+            if payload and payload.get("artists"):
+                self.bronze.write(SOURCE, "sitewide_artists", self.today, "week", payload)
+                return payload["artists"]
+            if attempt + 1 < SITEWIDE_ATTEMPTS:
+                time.sleep(SITEWIDE_RETRY_SECONDS)
+        previous = self.bronze.latest(SOURCE, "sitewide_artists")
+        if not previous:
             raise RuntimeError("ListenBrainz returned no sitewide artist stats")
-        self.bronze.write(SOURCE, "sitewide_artists", self.today, "week", payload)
-        return payload["artists"]
+        log.warning(
+            "ListenBrainz returned no sitewide artist stats; seeding from the %s snapshot",
+            previous[0].dt.isoformat(),
+        )
+        return self.bronze.read(previous[0])["artists"]
 
     def _load_panel(self) -> list[PanelMember]:
         if not self.panel_path.exists():
