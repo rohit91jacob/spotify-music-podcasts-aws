@@ -14,7 +14,7 @@ requires-python = ">=3.12,<3.14"
 authors = [{ name = "rohit91jacob" }]
 keywords = ["listenbrainz", "musicbrainz", "podcasts", "iceberg", "firehose", "dbt", "duckdb", "aws"]
 dependencies = [
-  "boto3==1.43.110",
+  "boto3==1.43.113",
   # moto is a runtime dependency on purpose: the default (no endpoint) mode runs every AWS SDK
   # call against moto in-process instead of a real account.
   "moto[s3,firehose,stepfunctions,events,scheduler]==5.2.3",
@@ -47,7 +47,7 @@ dev = [
   "responses>=0.25,<1",
   # moto_server: a network AWS endpoint for the integration test (CI also runs it on LocalStack).
   "moto[server]==5.2.3",
-  "ruff>=0.16,<0.17",
+  "ruff>=0.16,<0.18",
   "pre-commit>=4,<5",
 ]
 
