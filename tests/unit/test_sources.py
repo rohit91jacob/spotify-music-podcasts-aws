@@ -75,7 +75,10 @@ def _listen(ts: int, n: int) -> dict:
 
 
 @responses.activate
-def test_listenbrainz_ingest_end_to_end(settings):
+def test_listenbrainz_ingest_end_to_end(settings, monkeypatch):
+    # The listens window is measured back from the wall clock; pin it to the fixtures' NOW so the
+    # test doesn't start failing once the real date moves past the window (it did on 21 Nov 2026).
+    monkeypatch.setattr(lb.time, "time", lambda: NOW)
     api = lb.API
     responses.get(
         f"{api}/stats/sitewide/artists",
